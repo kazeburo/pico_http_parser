@@ -8,8 +8,8 @@ Gem::Specification.new do |spec|
   spec.version       = PicoHTTPParser::VERSION
   spec.authors       = ["Masahiro Nagano"]
   spec.email         = ["kazeburo@gmail.com"]
-  spec.summary       = %q{Fast HTTP parser using picohttparser}
-  spec.description   = %q{Fast HTTP parser using picohttparser}
+  spec.summary       = %q{Fast HTTP parser using picohttpparser}
+  spec.description   = %q{Fast HTTP parser using picohttpparser}
   spec.homepage      = "https://github.com/kazeburo/pico_http_parser"
   spec.license       = "Artistic"
   spec.extensions    = %w[ext/pico_http_parser/extconf.rb]
