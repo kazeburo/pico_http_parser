@@ -12,24 +12,26 @@ loop = 300000
 
 #File.read(File.expand_path(File.dirname(__FILE__) + '/sample_request.http'))
 
-Benchmark.bmbm(20) do |bm|
-  bm.report("PicoHTTPParser") do
-    0.upto(loop) do
-      env = {}
-      PicoHTTPParser.parse_http_request(request_body,env)
-    end
-  end
+Benchmark.ips do |x|
+  x.time = 5
+  x.warmup = 2
+
+  x.report("PicoHTTPParser") {
+    env = {}
+    PicoHTTPParser.parse_http_request(request_body,env)
+  }
+
   begin
     require 'unicorn'
     include Unicorn
-    bm.report("HttpParser") do
-      0.upto(loop) do
-        parser = HttpParser.new
-        parser.buf << request_body
-        parser.parse
-      end
-    end
+    x.report("Unicorn's HttpParser") {
+      parser = HttpParser.new
+      parser.buf << request_body
+      parser.parse
+    }
   rescue LoadError
     puts("Can't benchmark unicorn as it couldn't be loaded.")
   end
+
+  x.compare!
 end

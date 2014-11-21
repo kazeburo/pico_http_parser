@@ -49,6 +49,23 @@ given request is corrupt
 
 given request is incomplete
 
+## Benchmark
+
+On my Macbook Air
+
+```
+Calculating -------------------------------------
+      PicoHTTPParser    13.988k i/100ms
+Unicorn's HttpParser    12.250k i/100ms
+-------------------------------------------------
+      PicoHTTPParser    160.563k (± 4.3%) i/s -    811.304k
+Unicorn's HttpParser    135.976k (± 4.1%) i/s -    686.000k
+
+Comparison:
+      PicoHTTPParser:   160562.7 i/s
+Unicorn's HttpParser:   135975.8 i/s - 1.18x slower
+```
+
 ## SEE ALSO
 
 PicoHTTPParser is created based on Perl's HTTP::Parser::XS. 
