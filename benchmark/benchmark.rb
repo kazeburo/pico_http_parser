@@ -2,15 +2,7 @@ require File.expand_path(File.dirname(__FILE__) + '/bench_helper')
 
 require 'pico_http_parser'
 
-request_body = <<REQ
-GET /blakjsdfkas HTTP/1.1\r
-Host: blooperblorp\r
-Cookie: blah=woop\r
-\r
-REQ
-loop = 300000
-
-#File.read(File.expand_path(File.dirname(__FILE__) + '/sample_request.http'))
+request_body = "GET /foo/bar/baz.html?key=value HTTP/1.0\r\nHost: blooperblorp\r\n\r\n"
 
 Benchmark.ips do |x|
   x.time = 5

@@ -54,16 +54,17 @@ given request is incomplete
 On my Macbook Air
 
 ```
+$ ruby benchmark.rb
 Calculating -------------------------------------
-      PicoHTTPParser    13.988k i/100ms
-Unicorn's HttpParser    12.250k i/100ms
+      PicoHTTPParser    15.749k i/100ms
+Unicorn's HttpParser    13.564k i/100ms
 -------------------------------------------------
-      PicoHTTPParser    160.563k (± 4.3%) i/s -    811.304k
-Unicorn's HttpParser    135.976k (± 4.1%) i/s -    686.000k
+      PicoHTTPParser    190.401k (± 3.0%) i/s -    960.689k
+Unicorn's HttpParser    153.560k (± 4.9%) i/s -    773.148k
 
 Comparison:
-      PicoHTTPParser:   160562.7 i/s
-Unicorn's HttpParser:   135975.8 i/s - 1.18x slower
+      PicoHTTPParser:   190401.3 i/s
+Unicorn's HttpParser:   153560.3 i/s - 1.24x slower
 ```
 
 ## SEE ALSO
