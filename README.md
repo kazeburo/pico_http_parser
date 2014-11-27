@@ -56,15 +56,15 @@ On my Macbook Air
 ```
 $ ruby benchmark.rb
 Calculating -------------------------------------
-      PicoHTTPParser    15.749k i/100ms
-Unicorn's HttpParser    13.564k i/100ms
+      PicoHTTPParser    13.655k i/100ms
+Unicorn's HttpParser    11.554k i/100ms
 -------------------------------------------------
-      PicoHTTPParser    190.401k (Â± 3.0%) i/s -    960.689k
-Unicorn's HttpParser    153.560k (Â± 4.9%) i/s -    773.148k
+      PicoHTTPParser    155.331k (¡Þ 3.7%) i/s -    778.335k
+Unicorn's HttpParser    127.455k (¡Þ 3.5%) i/s -    647.024k
 
 Comparison:
-      PicoHTTPParser:   190401.3 i/s
-Unicorn's HttpParser:   153560.3 i/s - 1.24x slower
+      PicoHTTPParser:   155331.2 i/s
+Unicorn's HttpParser:   127455.1 i/s - 1.22x slower
 ```
 
 ## SEE ALSO

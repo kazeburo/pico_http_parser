@@ -8,6 +8,14 @@
 
 VALUE cPicoHTTPParser;
 
+static VALUE request_method_key;
+static VALUE request_uri_key;
+static VALUE script_name_key;
+static VALUE server_protocol_key;
+static VALUE query_string_key;
+static VALUE content_type_key;
+static VALUE content_length_key;
+
 static
 size_t find_ch(const char* s, size_t len, char ch)
 {
@@ -93,11 +101,11 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
   if (ret < 0)
     goto done;
 
-  rb_hash_aset(envref, rb_str_new2("REQUEST_METHOD"), rb_str_new(method,method_len));
-  rb_hash_aset(envref, rb_str_new2("REQUEST_URI"), rb_str_new(path, path_len));
-  rb_hash_aset(envref, rb_str_new2("SCRIPT_NAME"), rb_str_new2(""));
+  rb_hash_aset(envref, request_method_key, rb_str_new(method,method_len));
+  rb_hash_aset(envref, request_uri_key, rb_str_new(path, path_len));
+  rb_hash_aset(envref, script_name_key, rb_str_new2(""));
   i = sprintf(tmp,"HTTP/1.%d",minor_version);
-  rb_hash_aset(envref, rb_str_new2("SERVER_PROTOCOL"), rb_str_new(tmp, i));
+  rb_hash_aset(envref, server_protocol_key, rb_str_new(tmp, i));
 
   /* PATH_INFO QUERY_STRING */
   path_len = find_ch(path, path_len, '#'); /* strip off all text after # after storing request_uri */
@@ -108,7 +116,7 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
     goto done;
   }
   if (question_at != path_len) ++question_at;
-  rb_hash_aset(envref, rb_str_new2("QUERY_STRING"), rb_str_new(path + question_at, path_len - question_at));
+  rb_hash_aset(envref, query_string_key, rb_str_new(path + question_at, path_len - question_at));
 
   last_value = Qnil;
   for (i = 0; i < num_headers; ++i) {
@@ -116,12 +124,11 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
       const char* name;
       size_t name_len;
       VALUE slot;
+      VALUE env_key;
       if (header_is(headers + i, "CONTENT-TYPE", sizeof("CONTENT-TYPE") - 1)) {
-        name = "CONTENT_TYPE";
-        name_len = sizeof("CONTENT_TYPE") - 1;
+        env_key = content_type_key;
       } else if (header_is(headers + i, "CONTENT-LENGTH", sizeof("CONTENT-LENGTH") - 1)) {
-        name = "CONTENT_LENGTH";
-        name_len = sizeof("CONTENT_LENGTH") - 1;
+        env_key = content_length_key;
       } else {
         const char* s;
         char* d;
@@ -138,15 +145,16 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
             *d = *s == '-' ? '_' : TOU(*s);
             name = tmp;
             name_len = headers[i].name_len + 5;
+            env_key = rb_str_new(name, name_len);
         }
       }
-      slot = rb_hash_aref(envref, rb_str_new(name, name_len));
+      slot = rb_hash_aref(envref, env_key);
       if ( slot != Qnil ) {
         rb_str_cat2(slot, ", ");
         rb_str_cat(slot, headers[i].value, headers[i].value_len);
       } else {
         slot = rb_str_new(headers[i].value, headers[i].value_len);
-        rb_hash_aset(envref, rb_str_new(name, name_len), slot);
+        rb_hash_aset(envref, env_key, slot);
         last_value = slot;
       }
     } else {
@@ -161,6 +169,20 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
 
 void Init_pico_http_parser()
 {
+  request_method_key = rb_obj_freeze(rb_str_new2("REQUEST_METHOD"));
+  rb_gc_register_address(&request_method_key);
+  request_uri_key = rb_obj_freeze(rb_str_new2("REQUEST_URI"));
+  rb_gc_register_address(&request_uri_key);
+  script_name_key = rb_obj_freeze(rb_str_new2("SCRIPT_NAME"));
+  rb_gc_register_address(&script_name_key);
+  server_protocol_key = rb_obj_freeze(rb_str_new2("SERVER_PROTOCOL"));
+  rb_gc_register_address(&server_protocol_key);
+  query_string_key = rb_obj_freeze(rb_str_new2("QUERY_STRING"));
+  rb_gc_register_address(&query_string_key);
+  content_type_key = rb_obj_freeze(rb_str_new2("CONTENT_TYPE"));
+  rb_gc_register_address(&content_type_key);
+  content_length_key = rb_obj_freeze(rb_str_new2("CONTENT_LENGTH"));
+  rb_gc_register_address(&content_length_key);
 
   cPicoHTTPParser = rb_const_get(rb_cObject, rb_intern("PicoHTTPParser"));
   rb_define_module_function(cPicoHTTPParser, "parse_http_request", phr_parse_http_request, 2);
