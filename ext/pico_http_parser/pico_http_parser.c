@@ -55,7 +55,7 @@ void set_common_header(const char * key, int key_len, const int raw)
   common_headers[common_headers_num].name = key;
   common_headers[common_headers_num].name_len = key_len;
   common_headers[common_headers_num].key = env_key;
-  rb_global_variable(&common_headers[common_headers_num].key);
+  rb_gc_register_address(&common_headers[common_headers_num].key);
   common_headers_num++;
 }
 
