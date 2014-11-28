@@ -13,8 +13,52 @@ static VALUE request_uri_key;
 static VALUE script_name_key;
 static VALUE server_protocol_key;
 static VALUE query_string_key;
-static VALUE content_type_key;
-static VALUE content_length_key;
+
+struct common_header {
+  const char * name;
+  size_t name_len;
+  VALUE key;
+};
+static int common_headers_num = 0;
+static struct common_header common_headers[20];
+
+static
+void set_common_header(const char * key, int key_len, const int raw)
+{
+  char tmp[MAX_HEADER_NAME_LEN + sizeof("HTTP_") - 1];
+  const char* name;
+  size_t name_len;
+  const char * s;
+  char* d;
+  size_t n;
+  VALUE env_key;
+
+  if ( raw == 1) {
+    for (s = key, n = key_len, d = tmp;
+      n != 0;
+      s++, --n, d++) {
+      *d = *s == '-' ? '_' : TOU(*s);
+      name = tmp;
+      name_len = key_len;
+    }
+  } else {
+    strcpy(tmp, "HTTP_");
+    for (s = key, n = key_len, d = tmp + 5;
+      n != 0;
+      s++, --n, d++) {
+      *d = *s == '-' ? '_' : TOU(*s);
+      name = tmp;
+      name_len = key_len + 5;
+    }
+  }
+  env_key = rb_obj_freeze(rb_str_new(name,name_len));
+  common_headers[common_headers_num].name = key;
+  common_headers[common_headers_num].name_len = key_len;
+  common_headers[common_headers_num].key = env_key;
+  rb_global_variable(&common_headers[common_headers_num].key);
+  common_headers_num++;
+}
+
 
 static
 size_t find_ch(const char* s, size_t len, char ch)
@@ -39,6 +83,16 @@ int header_is(const struct phr_header* header, const char* name,
   return 1;
 }
 
+static
+VALUE find_common_header(const struct phr_header* header) {
+  int i;
+  for ( i = 0; i < common_headers_num; i++ ) {
+    if ( header_is(header, common_headers[i].name, common_headers[i].name_len) ) {
+      return common_headers[i].key;
+    }
+  }
+  return Qnil;
+}
 
 static
 int store_path_info(VALUE envref, const char* src, size_t src_len) {
@@ -125,11 +179,8 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
       size_t name_len;
       VALUE slot;
       VALUE env_key;
-      if (header_is(headers + i, "CONTENT-TYPE", sizeof("CONTENT-TYPE") - 1)) {
-        env_key = content_type_key;
-      } else if (header_is(headers + i, "CONTENT-LENGTH", sizeof("CONTENT-LENGTH") - 1)) {
-        env_key = content_length_key;
-      } else {
+      env_key = find_common_header(headers + i);
+      if ( env_key == Qnil ) {
         const char* s;
         char* d;
         size_t n;
@@ -179,10 +230,20 @@ void Init_pico_http_parser()
   rb_gc_register_address(&server_protocol_key);
   query_string_key = rb_obj_freeze(rb_str_new2("QUERY_STRING"));
   rb_gc_register_address(&query_string_key);
-  content_type_key = rb_obj_freeze(rb_str_new2("CONTENT_TYPE"));
-  rb_gc_register_address(&content_type_key);
-  content_length_key = rb_obj_freeze(rb_str_new2("CONTENT_LENGTH"));
-  rb_gc_register_address(&content_length_key);
+
+  set_common_header("CONTENT-TYPE",sizeof("CONTENT-TYPE") - 1, 1);
+  set_common_header("CONTENT-LENGTH",sizeof("CONTENT-LENGTH") - 1, 1);
+  set_common_header("HOST",sizeof("HOST") - 1, 0);
+  set_common_header("USER-AGENT",sizeof("USER-AGENT") - 1, 0);
+  set_common_header("COOKIE",sizeof("COOKIE") - 1, 0);
+  set_common_header("X-FORWARDED-FOR",sizeof("X-FORWARDED-FOR") - 1, 0);
+  set_common_header("ACCEPT",sizeof("ACCEPT") - 1, 0);
+  set_common_header("ACCEPT-ENCODING",sizeof("ACCEPT-ENCODING") - 1, 0);
+  set_common_header("ACCEPT-LANGUAGE",sizeof("ACCEPT-LANGUAGE") - 1, 0);
+  set_common_header("CACHE-CONTROL",sizeof("CACHE-CONTROL") - 1, 0);
+  set_common_header("CONNECTION",sizeof("CONNECTION") - 1, 0);
+  set_common_header("IF-MODIFIED-SINCE",sizeof("IF-MODIFIED-SINCE") - 1, 0);
+  set_common_header("REFERER",sizeof("REFERER") - 1, 0);
 
   cPicoHTTPParser = rb_const_get(rb_cObject, rb_intern("PicoHTTPParser"));
   rb_define_module_function(cPicoHTTPParser, "parse_http_request", phr_parse_http_request, 2);
