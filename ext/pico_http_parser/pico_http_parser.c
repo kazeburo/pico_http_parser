@@ -158,8 +158,9 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
   rb_hash_aset(envref, request_method_key, rb_str_new(method,method_len));
   rb_hash_aset(envref, request_uri_key, rb_str_new(path, path_len));
   rb_hash_aset(envref, script_name_key, rb_str_new2(""));
-  i = sprintf(tmp,"HTTP/1.%d",minor_version);
-  rb_hash_aset(envref, server_protocol_key, rb_str_new(tmp, i));
+  strcpy(tmp, "HTTP/1.");
+  tmp[7] = 48 + ((minor_version > 1 || minor_version < 0 ) ? 0 : minor_version);
+  rb_hash_aset(envref, server_protocol_key, rb_str_new(tmp, sizeof("HTTP/1.0") - 1));
 
   /* PATH_INFO QUERY_STRING */
   path_len = find_ch(path, path_len, '#'); /* strip off all text after # after storing request_uri */
@@ -231,19 +232,19 @@ void Init_pico_http_parser()
   query_string_key = rb_obj_freeze(rb_str_new2("QUERY_STRING"));
   rb_gc_register_address(&query_string_key);
 
-  set_common_header("CONTENT-TYPE",sizeof("CONTENT-TYPE") - 1, 1);
-  set_common_header("CONTENT-LENGTH",sizeof("CONTENT-LENGTH") - 1, 1);
-  set_common_header("HOST",sizeof("HOST") - 1, 0);
-  set_common_header("USER-AGENT",sizeof("USER-AGENT") - 1, 0);
-  set_common_header("COOKIE",sizeof("COOKIE") - 1, 0);
-  set_common_header("X-FORWARDED-FOR",sizeof("X-FORWARDED-FOR") - 1, 0);
   set_common_header("ACCEPT",sizeof("ACCEPT") - 1, 0);
   set_common_header("ACCEPT-ENCODING",sizeof("ACCEPT-ENCODING") - 1, 0);
   set_common_header("ACCEPT-LANGUAGE",sizeof("ACCEPT-LANGUAGE") - 1, 0);
   set_common_header("CACHE-CONTROL",sizeof("CACHE-CONTROL") - 1, 0);
   set_common_header("CONNECTION",sizeof("CONNECTION") - 1, 0);
+  set_common_header("CONTENT-LENGTH",sizeof("CONTENT-LENGTH") - 1, 1);
+  set_common_header("CONTENT-TYPE",sizeof("CONTENT-TYPE") - 1, 1);
+  set_common_header("COOKIE",sizeof("COOKIE") - 1, 0);
+  set_common_header("HOST",sizeof("HOST") - 1, 0);
   set_common_header("IF-MODIFIED-SINCE",sizeof("IF-MODIFIED-SINCE") - 1, 0);
   set_common_header("REFERER",sizeof("REFERER") - 1, 0);
+  set_common_header("USER-AGENT",sizeof("USER-AGENT") - 1, 0);
+  set_common_header("X-FORWARDED-FOR",sizeof("X-FORWARDED-FOR") - 1, 0);
 
   cPicoHTTPParser = rb_const_get(rb_cObject, rb_intern("PicoHTTPParser"));
   rb_define_module_function(cPicoHTTPParser, "parse_http_request", phr_parse_http_request, 2);
