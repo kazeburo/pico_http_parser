@@ -211,7 +211,8 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
       }
     } else {
       /* continuing lines of a mulitiline header */
-      rb_str_cat(last_value, headers[i].value, headers[i].value_len);
+      if ( last_value != Qnil )
+        rb_str_cat(last_value, headers[i].value, headers[i].value_len);
     }
   }
 
