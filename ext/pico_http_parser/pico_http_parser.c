@@ -14,6 +14,11 @@ static VALUE script_name_key;
 static VALUE server_protocol_key;
 static VALUE query_string_key;
 
+static VALUE vacant_string_val;
+
+static VALUE http10_val;
+static VALUE http11_val;
+
 struct common_header {
   const char * name;
   size_t name_len;
@@ -147,8 +152,8 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
   char tmp[MAX_HEADER_NAME_LEN + sizeof("HTTP_") - 1];
   VALUE last_value;
 
-  buf_str = StringValuePtr(buf);
-  buf_len = strlen(buf_str);
+  buf_str = RSTRING_PTR(buf);
+  buf_len = RSTRING_LEN(buf);
   num_headers = MAX_HEADERS;
   ret = phr_parse_request(buf_str, buf_len, &method, &method_len, &path,
                           &path_len, &minor_version, headers, &num_headers, 0);
@@ -157,10 +162,8 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
 
   rb_hash_aset(envref, request_method_key, rb_str_new(method,method_len));
   rb_hash_aset(envref, request_uri_key, rb_str_new(path, path_len));
-  rb_hash_aset(envref, script_name_key, rb_str_new2(""));
-  strcpy(tmp, "HTTP/1.");
-  tmp[7] = 48 + ((minor_version > 1 || minor_version < 0 ) ? 0 : minor_version);
-  rb_hash_aset(envref, server_protocol_key, rb_str_new(tmp, sizeof("HTTP/1.0") - 1));
+  rb_hash_aset(envref, script_name_key, vacant_string_val);
+  rb_hash_aset(envref, server_protocol_key, (minor_version == 1) ? http11_val : http10_val);
 
   /* PATH_INFO QUERY_STRING */
   path_len = find_ch(path, path_len, '#'); /* strip off all text after # after storing request_uri */
@@ -172,7 +175,7 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
   }
   if (question_at != path_len) ++question_at;
   rb_hash_aset(envref, query_string_key, rb_str_new(path + question_at, path_len - question_at));
-
+ 
   last_value = Qnil;
   for (i = 0; i < num_headers; ++i) {
     if (headers[i].name != NULL) {
@@ -200,6 +203,7 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
             env_key = rb_str_new(name, name_len);
         }
       }
+      
       slot = rb_hash_aref(envref, env_key);
       if ( slot != Qnil ) {
         rb_str_cat2(slot, ", ");
@@ -209,11 +213,13 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
         rb_hash_aset(envref, env_key, slot);
         last_value = slot;
       }
+      
     } else {
       /* continuing lines of a mulitiline header */
       if ( last_value != Qnil )
         rb_str_cat(last_value, headers[i].value, headers[i].value_len);
     }
+    
   }
 
  done:
@@ -246,6 +252,13 @@ void Init_pico_http_parser()
   set_common_header("REFERER",sizeof("REFERER") - 1, 0);
   set_common_header("USER-AGENT",sizeof("USER-AGENT") - 1, 0);
   set_common_header("X-FORWARDED-FOR",sizeof("X-FORWARDED-FOR") - 1, 0);
+
+  http10_val = rb_obj_freeze(rb_str_new2("HTTP/1.0"));
+  rb_gc_register_address(&http10_val);
+  http11_val = rb_obj_freeze(rb_str_new2("HTTP/1.1"));
+  rb_gc_register_address(&http11_val);
+  vacant_string_val = rb_obj_freeze(rb_str_new("",0));
+  rb_gc_register_address(&vacant_string_val);
 
   cPicoHTTPParser = rb_const_get(rb_cObject, rb_intern("PicoHTTPParser"));
   rb_define_module_function(cPicoHTTPParser, "parse_http_request", phr_parse_http_request, 2);
