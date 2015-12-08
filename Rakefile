@@ -17,3 +17,5 @@ task :test do
   Rake::Task["spec"].invoke
 end
 
+task :default => :test
+
