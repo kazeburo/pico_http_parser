@@ -123,7 +123,6 @@ EOT
     'REQUEST_METHOD' => 'GET',
     'REQUEST_URI'    => '/a/b#c',
     'QUERY_STRING'   => '',
-    'SCRIPT_NAME'     => '',
     'SERVER_PROTOCOL' => 'HTTP/1.0',
     })
   end
@@ -142,7 +141,6 @@ EOT
     'REQUEST_METHOD' => 'GET',
     'REQUEST_URI'    => '/a/b%23c',
     'QUERY_STRING'   => '',
-    'SCRIPT_NAME'     => '',
     'SERVER_PROTOCOL' => 'HTTP/1.0',
     })
   end
@@ -157,7 +155,6 @@ EOT
     ret = PicoHTTPParser.parse_http_request(req,env)
     expect(ret).to eq(req.length)
     expect(env).to match({
-    'SCRIPT_NAME' => '',
     'PATH_INFO'   => '/a/b',
     'REQUEST_METHOD' => 'GET',
     'REQUEST_URI'    => '/a/b?c=d#e',
