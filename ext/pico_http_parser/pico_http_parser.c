@@ -149,7 +149,7 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
   size_t num_headers, question_at;
   size_t i;
   int ret;
-  char tmp[MAX_HEADER_NAME_LEN + sizeof("HTTP_") - 1];
+  static char tmp[MAX_HEADER_NAME_LEN + sizeof("HTTP_") - 1];
   VALUE last_value;
 
   buf_str = RSTRING_PTR(buf);
@@ -177,6 +177,7 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
   rb_hash_aset(envref, query_string_key, rb_str_new(path + question_at, path_len - question_at));
  
   last_value = Qnil;
+
   for (i = 0; i < num_headers; ++i) {
     if (headers[i].name != NULL) {
       const char* name;
@@ -204,24 +205,19 @@ VALUE phr_parse_http_request(VALUE self, VALUE buf, VALUE envref)
         }
       }
       
-      slot = rb_hash_aref(envref, env_key);
-      if ( slot != Qnil ) {
+      if ( NIL_P(rb_hash_lookup(envref, env_key)) ) {
+        last_value = rb_hash_aset(envref, env_key, rb_str_new(headers[i].value, headers[i].value_len));
+      } else {
+        slot = rb_hash_aref(envref, env_key);
         rb_str_cat2(slot, ", ");
         rb_str_cat(slot, headers[i].value, headers[i].value_len);
-      } else {
-        slot = rb_str_new(headers[i].value, headers[i].value_len);
-        rb_hash_aset(envref, env_key, slot);
-        last_value = slot;
       }
-      
     } else {
       /* continuing lines of a mulitiline header */
       if ( last_value != Qnil )
         rb_str_cat(last_value, headers[i].value, headers[i].value_len);
     }
-    
   }
-
  done:
   return rb_int_new(ret);
 }
